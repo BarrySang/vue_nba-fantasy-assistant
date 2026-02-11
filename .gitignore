@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+season-schedule-results
 dist
 dist-ssr
 *.local
