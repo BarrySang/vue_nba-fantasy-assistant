@@ -1,30 +1,64 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
+import { ref, computed } from 'vue'
+import WeekSelector from './components/WeekSelector.vue'
+import TeamRecommendation from './components/TeamRecommendation.vue'
+import schedule from '../schedule.json'
+
+// Build Monday-Sunday weeks from the schedule date range
+function buildWeeks(games) {
+  const dates = games.map((g) => g.date).sort()
+  const first = new Date(dates[0] + 'T00:00:00')
+  const last = new Date(dates[dates.length - 1] + 'T00:00:00')
+
+  // Find the Monday on or before the first game
+  const startMonday = new Date(first)
+  startMonday.setDate(startMonday.getDate() - startMonday.getDay() + 1)
+  if (startMonday > first) startMonday.setDate(startMonday.getDate() - 7)
+
+  const weeks = []
+  const current = new Date(startMonday)
+
+  while (current <= last) {
+    const weekStart = current.toISOString().split('T')[0]
+    const weekEnd = new Date(current)
+    weekEnd.setDate(weekEnd.getDate() + 6)
+    weeks.push({ start: weekStart, end: weekEnd.toISOString().split('T')[0] })
+    current.setDate(current.getDate() + 7)
+  }
+
+  return weeks
+}
+
+const weeks = buildWeeks(schedule)
+const selectedWeekIndex = ref(0)
+
+const selectedWeek = computed(() => weeks[selectedWeekIndex.value])
+
+const gamesThisWeek = computed(() =>
+  schedule.filter(
+    (g) => g.date >= selectedWeek.value.start && g.date <= selectedWeek.value.end
+  )
+)
 </script>
 
 <template>
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
-  </div>
-  <HelloWorld msg="Vite + Vue" />
-</template>
+  <div class="min-h-screen bg-gray-900 text-white">
+    <div class="max-w-2xl mx-auto px-4 py-8">
+      <h1 class="text-3xl font-bold text-center mb-2">NBA Fantasy Planner</h1>
+      <p class="text-gray-400 text-center mb-8">
+        Pick the best team distribution for your game week
+      </p>
 
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
-}
-</style>
+      <div class="bg-gray-800 rounded-xl p-6 mb-6">
+        <WeekSelector
+          :weeks="weeks"
+          v-model:selectedWeekIndex="selectedWeekIndex"
+        />
+      </div>
+
+      <div class="bg-gray-800 rounded-xl p-6">
+        <TeamRecommendation :games="gamesThisWeek" />
+      </div>
+    </div>
+  </div>
+</template>
